@@ -1,0 +1,13 @@
+@echo off
+setlocal
+if not exist backup\organ%1.arj goto ok
+:loop
+  echos `This will overwrite ORGAN`%1`.ARJ, proceed (Y/N)? `
+  inkey %%a
+  set a=%@upper[%a]
+  if "%a" NE "Y" .AND. "%a" NE "N" goto loop
+  if "%a" == "N" goto done
+:ok
+arj a backup\organ%1 *.h *.c *.bat *.btm *.b *.i
+:done
+endlocal

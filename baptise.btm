@@ -1,0 +1,97 @@
+@echo off
+
+rem **********************************************************
+rem * BAPTISE.BTM -- takes .b and .i C files and turns them  *
+rem * into their respective bug and ini DYNAMOs.             *
+rem **********************************************************
+
+setlocal
+iff %# NE 1 then
+  echo baptise: usage:  baptise filename
+  goto done
+endiff
+iff not exist %1.b then
+  echo baptise: file %1.b not found
+  goto done
+endiff
+iff not exist %1.i then
+  echo baptise: file %1.i not found
+  goto done
+endiff
+set cc=%@search[bcc]
+if "%cc" == "" set cc=%@search[tcc]
+rem * add lines like the above for additional compilers *
+iff "%cc" == "" then
+  echo baptise: no C compiler found
+  goto done
+endiff
+set asm=%@search[tasm]
+if "%asm" == "" set asm=%@search[masm]
+rem * add lines like the above for additional assemblers *
+iff "%asm" == "" then
+  echo baptise: no assembler found
+  goto done
+endiff
+set link=%@search[tlink]
+if "%link" == "" set link=%@search[link]
+rem * add lines like the above for additional linkers *
+iff "%link" == "" then
+  echo baptise: no linker found
+  goto done
+endiff
+iff "%@search[exe2bin]" == "" then
+  echo baptise: "exe2bin.exe" not found
+  goto done
+endiff
+
+rem *********************************************************************
+rem * command line arguments for various compilers, assemblers, linkers *
+rem *********************************************************************
+
+if "%@name[%cc]" == "tcc" set arg4cc=-S -mt -ZOG1
+if "%@name[%cc]" == "bcc" set arg4cc=-S -mt -ZOG1
+if "%@name[%asm]" == "masm" set arg4asm=
+if "%@name[%asm]" == "tasm" set arg4asm=
+if "%@name[%link]" == "link" set arg4link=
+if "%@name[%link]" == "tlink" set arg4link=/x
+
+echo *************************
+echo * Building .bug file... *
+echo *************************
+ren /q %1.b $temp$$$.c
+gosub build
+ren /q $temp$$$.c %1.b
+if exist %1.bug del /q %1.bug
+ren /q $temp$$$.com %1.bug
+
+:buildini
+
+echo *************************
+echo * Building .ini file... *
+echo *************************
+ren /q %1.i $temp$$$.c
+gosub build
+ren /q $temp$$$.c %1.i
+if exist %1.ini del /q %1.ini
+ren /q $temp$$$.com %1.ini
+
+rem * take out following 3 lines to preserve asm, obj, exe files *
+
+echo.
+echo Deleting temporary asm, obj, and exe files...
+del /q $temp$$$.*
+
+:done
+endlocal
+quit
+
+:build
+  %cc %arg4cc $temp$$$.c
+  echo.
+  %asm %arg4asm $temp$$$.asm;
+  echo.
+  %link %arg4link $temp$$$.obj;
+  echo.
+  echo exe2bin $temp$$$.exe --> $temp$$$.com
+  exe2bin $temp$$$.exe $temp$$$.com
+return
